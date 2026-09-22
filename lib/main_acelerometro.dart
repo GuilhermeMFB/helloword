@@ -136,8 +136,4 @@ class _SensorPageState extends State<SensorPage> {
     );
   }
 
-  accelerometerEventStream() {}
-}
-
-class AccelerometerEvent {
 }

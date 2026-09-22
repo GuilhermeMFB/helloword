@@ -34,7 +34,7 @@ class GrupoMuscular {
 final String nome;
 final IconData icone;
 
-final List exercicios;
+final List<String> exercicios;
 GrupoMuscular({
 required this.nome,
 required this.icone,
@@ -47,19 +47,19 @@ required this.exercicios,
 class MainScaffold extends StatefulWidget {
 const MainScaffold({super.key});
 @override
-State createState() => _MainScaffoldState();
+State<MainScaffold> createState() => _MainScaffoldState();
 }
-class _MainScaffoldState extends State {
+class _MainScaffoldState extends State<MainScaffold> {
 int _indiceSelecionado = 0;
 // Dados de treinos (compartilhados entre as páginas)
-final List _treinos = [
+final List<Treino> _treinos = [
 Treino(nome: 'Peito e Tríceps', icone: Icons.fitness_center),
 Treino(nome: 'Costas e Bíceps', icone: Icons.sports_gymnastics),
 Treino(nome: 'Pernas', icone: Icons.directions_run),
 
 Treino(nome: 'Ombro e Abdômen', icone: Icons.accessibility_new),
 ];
-final List _grupos = [
+final List<GrupoMuscular> _grupos = [
 GrupoMuscular(
 nome: 'Peito',
 icone: Icons.fitness_center,
@@ -148,19 +148,18 @@ label: 'Comprovar',
 );
 }
 }
-
 // ---------------------------------------------------------------------------
 // PÁGINA PRINCIPAL
 // ---------------------------------------------------------------------------
 class HomePage extends StatefulWidget {
-final List treinos;
+final List<Treino> treinos;
 final VoidCallback aoDetalhar;
 const HomePage({super.key, required this.treinos, required this.aoDetalhar});
 @override
-State createState() => _HomePageState();
+State<HomePage> createState() => _HomePageState();
 }
-class _HomePageState extends State {
-static const List _diasDaSemana = [
+class _HomePageState extends State<HomePage> {
+static const List<String> _diasDaSemana = [
 'Segunda-feira',
 'Terça-feira',
 'Quarta-feira',
@@ -175,7 +174,8 @@ Widget build(BuildContext context) {
 final agora = DateTime.now();
 final diaSemana = _diasDaSemana[agora.weekday - 1];
 final data =
-'{agora.month.toString().padLeft(2, '0')}/${agora.year}';
+'${agora.day.toString().padLeft(2, '0')}/'
+'${agora.month.toString().padLeft(2, '0')}/${agora.year}';
 return Column(
 children: [
 // HEADER
@@ -272,7 +272,7 @@ child: const Text('Detalhar'),
 // PÁGINA TREINO
 // ---------------------------------------------------------------------------
 class TreinoPage extends StatelessWidget {
-final List grupos;
+final List<GrupoMuscular> grupos;
 const TreinoPage({super.key, required this.grupos});
 void _abrirExercicios(BuildContext context, GrupoMuscular grupo) {
 showModalBottomSheet(
@@ -444,18 +444,17 @@ onTap: () {
 onTap();
 },
 ),
-);
+	);
 }
 }
-
 class CameraPage extends StatefulWidget {
 const CameraPage({super.key});
 @override
-State createState() => _CameraPageState();
+State<CameraPage> createState() => _CameraPageState();
 }
-class _CameraPageState extends State {
+class _CameraPageState extends State<CameraPage> {
 CameraController? _controller;
-List _cameras = [];
+List<CameraDescription> _cameras = [];
 int _cameraIndex = 0;
 bool _carregandoCamera = true;
 Uint8List? _fotoCapturada;
@@ -465,7 +464,7 @@ void initState() {
 super.initState();
 _inicializarCamera();
 }
-Future _inicializarCamera({CameraDescription? camera}) async {
+Future<void> _inicializarCamera({CameraDescription? camera}) async {
 try {
 if (_cameras.isEmpty) {
 _cameras = await availableCameras();
@@ -500,12 +499,12 @@ _erro = null;
 if (mounted) {
 setState(() {
 _carregandoCamera = false;
-_erro = 'Não foi possível acessar a câmera: ${exception.code}.';
+ _erro = 'Não foi possível acessar a câmera: $exception.';
 });
 }
 }
 }
-Future _alternarCamera() async {
+Future<void> _alternarCamera() async {
 if (_cameras.length < 2 || _carregandoCamera) return;
 final controller = _controller;
 await controller?.dispose();
@@ -520,7 +519,7 @@ _carregandoCamera = true;
 }
 await _inicializarCamera(camera: _cameras[_cameraIndex]);
 }
-Future _tirarFoto() async {
+Future<void> _tirarFoto() async {
 final controller = _controller;
 if (controller == null || !controller.value.isInitialized) return;
 try {
@@ -530,7 +529,7 @@ if (mounted) setState(() => _fotoCapturada = bytes);
 } catch (exception) {
 if (mounted) {
 setState(
-() => _erro = 'Não foi possível tirar a foto: ${exception.code}.',
+() => _erro = 'Não foi possível tirar a foto: $exception.',
 );
 }
 }
@@ -595,9 +594,3 @@ _fotoCapturada == null ? 'Tirar foto' : 'Tirar outra foto',
 }
 }
 
-class ResolutionPreset {
-}
-
-class CameraController {
-  CameraController(param0, medium, {required bool enableAudio});
-}
