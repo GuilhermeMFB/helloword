@@ -496,7 +496,7 @@ _carregandoCamera = false;
 
 _erro = null;
 });
-} on CameraException catch (exception) {
+} catch (exception) {
 if (mounted) {
 setState(() {
 _carregandoCamera = false;
@@ -527,7 +527,7 @@ try {
 final foto = await controller.takePicture();
 final bytes = await foto.readAsBytes();
 if (mounted) setState(() => _fotoCapturada = bytes);
-} on CameraException catch (exception) {
+} catch (exception) {
 if (mounted) {
 setState(
 () => _erro = 'Não foi possível tirar a foto: ${exception.code}.',
@@ -593,4 +593,11 @@ _fotoCapturada == null ? 'Tirar foto' : 'Tirar outra foto',
 ),
 );
 }
+}
+
+class ResolutionPreset {
+}
+
+class CameraController {
+  CameraController(param0, medium, {required bool enableAudio});
 }

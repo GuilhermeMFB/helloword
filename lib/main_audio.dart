@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'audio_feedback.dart';
 
 void main() {
   runApp(const TreinoApp());
@@ -124,6 +123,8 @@ class _MainScaffoldState extends State<MainScaffold> {
     ),
   ];
 
+  get AudioFeedback => null;
+
   void _irParaTreino() {
     setState(() => _indiceSelecionado = 1);
   }
@@ -195,6 +196,8 @@ class _HomePageState extends State<HomePage> {
     'Sábado',
     'Domingo',
   ];
+
+  get AudioFeedback => null;
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +326,8 @@ class TreinoPage extends StatelessWidget {
     super.key,
     required this.grupos,
   });
+
+  get AudioFeedback => null;
 
   void _abrirExercicios(
     BuildContext context,
@@ -456,6 +461,8 @@ class TreinoPage extends StatelessWidget {
 
 class PerfilPage extends StatelessWidget {
   const PerfilPage({super.key});
+
+  get AudioFeedback => null;
 
   @override
   Widget build(BuildContext context) {
