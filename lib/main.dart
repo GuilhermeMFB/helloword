@@ -1,109 +1,235 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';  
+
+import 'terefa.dart';
+import 'database_helper.dart';
 
 void main() {
-  runApp(const MeuApp());
+  runApp(const MeuAplicativo());
 }
 
-class MeuApp extends StatelessWidget {
-  const MeuApp({super.key});
+class MeuAplicativo extends StatelessWidget {
+  const MeuAplicativo({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Minha localização',
-      home: const LocalizacaoPage(),
+      title: 'Tarefas',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+      home: const TarefasPage(),
     );
   }
 }
 
-class LocalizacaoPage extends StatefulWidget {
-  const LocalizacaoPage({super.key});
+class TarefasPage extends StatefulWidget {
+  const TarefasPage({super.key});
 
   @override
-  State<LocalizacaoPage> createState() => _LocalizacaoPageState();
+  State<TarefasPage> createState() => _TarefasPageState();
 }
 
-class _LocalizacaoPageState extends State<LocalizacaoPage> {
-  double latitude = 0;
-  double longitude = 0;
+class _TarefasPageState extends State<TarefasPage> {
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
-  Future<void> buscarLocalizacao() async {
-    bool servicoAtivo = await Geolocator.isLocationServiceEnabled();
-    
-    if (!servicoAtivo) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
+  final TextEditingController descricaoController = TextEditingController();
 
-    LocationPermission permissao = await Geolocator.checkPermission();
-    
-    if (permissao == LocationPermission.denied) {
-      permissao = await Geolocator.requestPermission();
-    }
+  String prioridadeSelecionada = 'Média';
 
-    if (permissao == LocationPermission.denied ||
-    permissao == LocationPermission.deniedForever) {
-      return;
-    }
+  List<Tarefa> tarefas = [];
 
-    Position posicao = await Geolocator.getCurrentPosition();
+  @override
+  void initState() {
+    super.initState();
+
+    carregarTarefas();
+  }
+
+  // READ
+  Future<void> carregarTarefas() async {
+    final resultado = await dbHelper.listarTarefas();
 
     setState(() {
-      latitude = posicao.latitude;
-      longitude = posicao.longitude;
+      tarefas = resultado;
+    });
+  }
+
+  // CREATE
+  Future<void> adicionarTarefa() async {
+    final descricao = descricaoController.text.trim();
+
+    if (descricao.isEmpty) {
+      return;
+    }
+
+    final tarefa = Tarefa(
+      descricao: descricao,
+      prioridade: prioridadeSelecionada,
+      status: 'Pendente',
+    );
+
+    await dbHelper.inserirTarefa(tarefa);
+
+    descricaoController.clear();
+
+    setState(() {
+      prioridadeSelecionada = 'Média';
     });
 
-    print('Latitude: $latitude, Longitude: $longitude');
+    await carregarTarefas();
+  }
+
+  // UPDATE
+  Future<void> concluirTarefa(Tarefa tarefa) async {
+    final tarefaAtualizada = Tarefa(
+      id: tarefa.id,
+      descricao: tarefa.descricao,
+      prioridade: tarefa.prioridade,
+      status: 'Concluída',
+    );
+
+    await dbHelper.atualizarTarefa(tarefaAtualizada);
+
+    await carregarTarefas();
+  }
+
+  // DELETE
+  Future<void> excluirTarefa(int id) async {
+    await dbHelper.excluirTarefa(id);
+
+    await carregarTarefas();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minha localização'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+      appBar: AppBar(title: const Text('Minhas Tarefas')),
 
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+      body: Column(
+        children: [
+          // FORMULÁRIO
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(
+                  controller: descricaoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição da tarefa',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
 
-            children: [
-              const Icon(Icons.location_on, size: 80, color: Colors.red),
+                const SizedBox(height: 12),
 
-              const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: prioridadeSelecionada,
+                  decoration: const InputDecoration(
+                    labelText: 'Prioridade',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Baixa', child: Text('Baixa')),
+                    DropdownMenuItem(value: 'Média', child: Text('Média')),
+                    DropdownMenuItem(value: 'Alta', child: Text('Alta')),
+                  ],
+                  onChanged: (valor) {
+                    if (valor != null) {
+                      setState(() {
+                        prioridadeSelecionada = valor;
+                      });
+                    }
+                  },
+                ),
 
-              const Text(
-                'Localização atual:',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+                const SizedBox(height: 12),
 
-              const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: adicionarTarefa,
+                    child: const Text('ADICIONAR TAREFA'),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-              Text('Latitude: $latitude', style: const TextStyle(fontSize: 18)),
+          const Divider(),
 
-              const SizedBox(height: 10),
+          // LISTAGEM
+          Expanded(
+            child: tarefas.isEmpty
+                ? const Center(child: Text('Nenhuma tarefa cadastrada.'))
+                : ListView.builder(
+                    itemCount: tarefas.length,
+                    itemBuilder: (context, index) {
+                      final tarefa = tarefas[index];
 
-              Text(
-                'Longitude: $longitude',
-                style: const TextStyle(fontSize: 18),
-              ),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
 
-              const SizedBox(height: 30),
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text('${tarefa.id}')),
 
-              ElevatedButton(
-                onPressed: buscarLocalizacao,
-                child: const Text('Atualizar localização'),
-              ),
-            ]
-          )
-          
-        ),
+                          title: Text(
+                            tarefa.descricao,
+                            style: TextStyle(
+                              decoration: tarefa.status == 'Concluída'
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+
+                          subtitle: Text(
+                            'Prioridade: ${tarefa.prioridade}\n'
+                            'Status: ${tarefa.status}',
+                          ),
+
+                          isThreeLine: true,
+
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Concluir
+                              if (tarefa.status != 'Concluída')
+                                IconButton(
+                                  icon: const Icon(Icons.check),
+                                  tooltip: 'Concluir',
+                                  onPressed: () {
+                                    concluirTarefa(tarefa);
+                                  },
+                                ),
+
+                              // Excluir
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                tooltip: 'Excluir',
+                                onPressed: () {
+                                  excluirTarefa(tarefa.id!);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    descricaoController.dispose();
+
+    super.dispose();
   }
 }
